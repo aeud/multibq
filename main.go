@@ -17,11 +17,14 @@ import (
 var ch = make(chan time.Time)
 
 var (
-	dataset   *bigquery.Dataset
-	q         string
-	tableName *string
-	datasetID *string
-	projectID *string
+	dataset     *bigquery.Dataset
+	q           string
+	tableName   *string
+	datasetID   *string
+	projectID   *string
+	periodStart *string
+	periodEnd   *string
+	workers     *int
 )
 
 func init() {
@@ -29,6 +32,9 @@ func init() {
 	tableName = flag.String("table", "rfm", "Table name")
 	datasetID = flag.String("dataset", "rfm", "Dataset name to store the table to")
 	projectID = flag.String("project", "rfm", "Google project ID")
+	periodStart = flag.String("from", "rfm", "From date YYYYMMDD")
+	periodEnd = flag.String("to", "rfm", "To date YYYYMMDD")
+	workers = flag.Int("w", 10, "Workers")
 	flag.Parse()
 
 	ctx := context.Background()
@@ -78,7 +84,7 @@ func bq(t time.Time) error {
 
 func main() {
 	wg := new(sync.WaitGroup)
-	for i := 0; i < 10; i++ {
+	for i := 0; i < *workers; i++ {
 		go func() {
 			for {
 				t := <-ch
@@ -90,9 +96,8 @@ func main() {
 			}
 		}()
 	}
-	// var i int
-	start, _ := time.Parse("2006-01-02", "2017-07-01")
-	end, _ := time.Parse("2006-01-02", "2017-07-05")
+	start, _ := time.Parse("20060102", *periodStart)
+	end, _ := time.Parse("20060102", *periodEnd)
 	for end.Sub(start) >= 0 {
 		wg.Add(1)
 		ch <- start
